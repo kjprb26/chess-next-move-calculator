@@ -4,42 +4,134 @@
     <meta charset="UTF-8">
     <title>Chess Next-Move Calculator</title>
 
-    <!-- Chessboard UI -->
     <link rel="stylesheet"
           href="https://unpkg.com/@chrisoakman/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.css">
 
-    <!-- jQuery (required by chessboardjs) -->
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
-
-    <!-- Chess logic (validates moves) -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.12.0/chess.min.js"></script>
-
-    <!-- Chessboard UI -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.2/chess.min.js"></script>
     <script src="https://unpkg.com/@chrisoakman/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.js"></script>
+
+    <!-- Replace Poppins with whatever font you chose -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;700&display=swap" rel="stylesheet">
 
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
+
         body {
-            font-family: Arial, sans-serif;
-            background: #1a1a2e;
+            font-family: 'Poppins', sans-serif;
             color: #eee;
             display: flex;
             flex-direction: column;
             align-items: center;
+            justify-content: center;
             padding: 30px 20px;
             min-height: 100vh;
+            background-image: url('/static/whitewood.jpg');
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
         }
-        h1 { font-size: 1.8rem; margin-bottom: 8px; color: #e2b96f; }
+
+        h1 { font-size: 1.8rem; margin-bottom: 8px; color: #000000; }
         p.subtitle { color: #aaa; margin-bottom: 24px; font-size: 0.95rem; }
+
+        /* Main layout — reference panels on left, board in middle, reference panels on right */
+        .main-layout {
+            display: flex;
+            align-items: center;
+            gap: 24px;
+            justify-content: center;
+            flex-wrap: wrap;
+            width: 100%;
+            margin: 0 auto;
+        }
+
+        /* Each side panel */
+        .side-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            width: 200px;
+        }
+
+        .panel-title {
+            font-size: 1rem;
+            font-weight: bold;
+            color: #000000;
+            text-align: center;
+            margin-bottom: 4px;
+            border-bottom: 1px solid #444;
+            padding-bottom: 6px;
+        }
+
+        /* Each reference board card */
+        .ref-card {
+            background: rgba(0,0,0,0.55);
+            border-radius: 10px;
+            padding: 10px;
+            text-align: center;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            border: 1px solid #333;
+        }
+
+        .ref-card:hover {
+            transform: scale(1.03);
+            box-shadow: 0 4px 16px rgba(226,185,111,0.3);
+            border-color: #000000;
+        }
+
+        .ref-card .ref-board {
+            width: 160px;
+            margin: 0 auto 8px auto;
+        }
+
+        .ref-card .ref-name {
+            font-size: 0.8rem;
+            font-weight: bold;
+            color: #fffb00;
+        }
+
+        .ref-card .ref-desc {
+            font-size: 0.7rem;
+            color: #ffffff;
+            margin-top: 2px;
+        }
+
+        .load-btn {
+            margin-top: 6px;
+            padding: 4px 10px;
+            background: #ffffff;
+            color: #1a1a2e;
+            border: none;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .load-btn:hover { opacity: 0.85; }
+
+        /* Centre board area */
+        .center-area {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-top: -80px;
+            margin-left: -50px;
+        }
+
         #board-container { width: 420px; max-width: 100%; }
         #board { width: 100%; }
+
         .controls {
-            margin-top: 20px;
+            margin-top: 40px;
             display: flex;
             gap: 10px;
             flex-wrap: wrap;
             justify-content: center;
         }
+
         button {
             padding: 10px 20px;
             border: none;
@@ -49,13 +141,16 @@
             font-weight: bold;
             transition: opacity 0.2s;
         }
+
         button:hover { opacity: 0.85; }
-        #calcBtn { background: #e2b96f; color: #1a1a2e; }
+        #calcBtn  { background: #000000; color: #fff200; }
         #resetBtn { background: #444; color: #eee; }
         #flipBtn  { background: #444; color: #eee; }
+        #undoBtn { background: #444; color: #eee; }
+
         #result {
-            margin-top: 20px;
-            background: #16213e;
+            margin-top: 5px;
+            background: 000(0,0,0,0.55);
             border-radius: 8px;
             padding: 16px 24px;
             min-width: 300px;
@@ -66,9 +161,53 @@
             align-items: center;
             justify-content: center;
         }
+
         #result .move  { font-size: 1.4rem; font-weight: bold; color: #e2b96f; }
-        #result .score { color: #aaa; font-size: 0.9rem; margin-top: 4px; }
-        #result.error  { color: #ff6b6b; }
+        #result .score { color: #000; font-size: 0.9rem; margin-top: 4px; }
+        #result.error {
+            color: #ff4444;
+            background: rgba(255, 0, 0, 0.2);
+            border: 2px solid #ff4444;
+            font-size: 1.2rem;
+            font-weight: bold;
+        }
+
+        #eval-bar-container {
+            width: 28px;
+            height: 420px;
+            background: #fff;
+            border-radius: 6px;
+            overflow: hidden;
+            position: relative;
+            align-self: center;
+            margin-top: -150px;
+            border: 2px solid #444;
+        }
+
+        #eval-bar-black {
+            background: #1a1a1a;
+            width: 100%;
+            height: 50%;
+            transition: height 0.6s ease;
+        }
+
+        #eval-bar-white {
+            background: #f0f0f0;
+            width: 100%;
+            height: 50%;
+            transition: height 0.6s ease;
+        }
+
+        #eval-label {
+            position: absolute;
+            bottom: 4px;
+            width: 100%;
+            text-align: center;
+            font-size: 0.6rem;
+            color: #888;
+            font-weight: bold;
+        }
+
         .spinner {
             width: 24px; height: 24px;
             border: 3px solid #444;
@@ -77,54 +216,269 @@
             animation: spin 0.8s linear infinite;
             margin: auto;
         }
+
         @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* Chessboard square colours */
+        .black-3c85d { background-color: #4a4a4a !important; }
+        .white-1e1d7 { background-color: #fffefe !important; }
+        .highlight-white-50607 { box-shadow: inset 0 0 3px 3px #ff4444 !important; }
+        .highlight-black-3cc99 { box-shadow: inset 0 0 3px 3px #cc0000 !important; }
+
+        /* Toast notification when position is loaded */
+        #toast {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #ffffff;
+            color: #0000f5;
+            padding: 10px 24px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 0.9rem;
+            opacity: 0;
+            transition: opacity 0.4s;
+            pointer-events: none;
+        }
+
+        #toast.show { opacity: 1; }
+
+        #board-container {
+            position: relative;
+            padding: 20px 0 0 20px;
+        }
+
+        .file-labels, .rank-labels {
+            position: absolute;
+            display: flex;
+            color: #030303;
+            font-size: 0.75rem;
+            font-weight: bold;
+        }
+
+        .file-labels {
+            bottom: -18px;
+            left: 20px;
+            width: 420px;
+            justify-content: space-around;
+        }
+
+        .rank-labels {
+            top: 20px;
+            left: 0px;
+            flex-direction: column;
+            height: 420px;
+            justify-content: space-around;
+            align-items: center;
+        }
+
+        .page-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            width: 100%;
+            padding: 40px 20px;
+        }
     </style>
 </head>
 <body>
 
-<h1>♟ Chess Next-Move Calculator</h1>
-<p class="subtitle">Drag pieces to set up any position, then calculate the best move</p>
+<div class="page-wrapper">
+<h1>Lets Checkmate your opponent!</h1>
 
-<div id="board-container">
-    <div id="board"></div>
+<div class="main-layout">
+
+    <!-- LEFT PANEL: Openings -->
+    <div class="side-panel">
+        <div class="panel-title">⚔ Popular Openings</div>
+
+        <div class="ref-card">
+            <div class="ref-board" id="ref-sicilian"></div>
+            <div class="ref-name">Sicilian Defence</div>
+            <div class="ref-desc">Black's most popular response to 1.e4</div>
+            <button class="load-btn" onclick="loadPosition('rnbqkbnr/pp1ppppp/8/2p5/4P3/8/PPPP1PPP/RNBQKBNR w KQkq c6 0 2', 'Sicilian Defence loaded!')">Load Position</button>
+        </div>
+
+        <div class="ref-card">
+            <div class="ref-board" id="ref-ruy"></div>
+            <div class="ref-name">Ruy López</div>
+            <div class="ref-desc">One of the oldest and most classic openings</div>
+            <button class="load-btn" onclick="loadPosition('r1bqkbnr/pppp1ppp/2n5/1B2p3/4P3/5N2/PPPP1PPP/RNBQK2R b KQkq - 3 3', 'Ruy López loaded!')">Load Position</button>
+        </div>
+
+        <div class="ref-card">
+            <div class="ref-board" id="ref-french"></div>
+            <div class="ref-name">French Defence</div>
+            <div class="ref-desc">Solid structure for Black after 1.e4</div>
+            <button class="load-btn" onclick="loadPosition('rnbqkbnr/pppp1ppp/4p3/8/3PP3/8/PPP2PPP/RNBQKBNR b KQkq d3 0 2', 'French Defence loaded!')">Load Position</button>
+        </div>
+
+    </div>
+
+
+    <!-- CENTRE: Main interactive board -->
+     <div id="eval-bar-container">
+        <div id="eval-bar-black"></div>
+        <div id="eval-bar-white"></div>
+        <div id="eval-label"></div>
+    </div>
+
+    <div class="center-area">
+        <div id="board-container">
+            <div class="rank-labels">
+                <span>8</span><span>7</span><span>6</span>
+                <span>5</span><span>4</span><span>3</span>
+                <span>2</span><span>1</span>
+            </div>
+            <div id="board"></div>
+            <div class="file-labels">
+                <span>a</span><span>b</span><span>c</span>
+                <span>d</span><span>e</span><span>f</span>
+                <span>g</span><span>h</span>
+            </div>
+        </div>
+
+        <div class="controls">
+            <button id="calcBtn" onclick="getBestMove()">⚡ Calculate Best Move</button>
+            <button id="flipBtn" onclick="board.flip()">🔄 Flip Board</button>
+            <button id="resetBtn" onclick="resetBoard()">↩ Reset</button>
+            <button id="undoBtn" onclick="undoMove()">↩ Undo</button>
+        </div>
+
+        
+       
+    </div>
+
+    <!-- RIGHT PANEL: Checkmates -->
+    <div class="side-panel">
+        <div class="panel-title">♚ Checkmate Patterns</div>
+
+        <div class="ref-card">
+            <div class="ref-board" id="ref-scholars"></div>
+            <div class="ref-name">Scholar's Mate</div>
+            <div class="ref-desc">Fastest checkmate — 4 moves</div>
+            <button class="load-btn" onclick="loadPosition('r1bqk2r/pppp1Qpp/2n2n2/2b1p3/2B1P3/8/PPPP1PPP/RNB1K1NR b KQkq - 0 4', 'Scholar\'s Mate loaded!')">Load Position</button>
+        </div>
+
+        <div class="ref-card">
+            <div class="ref-board" id="ref-fool"></div>
+            <div class="ref-name">Fool's Mate</div>
+            <div class="ref-desc">Fastest possible checkmate in chess</div>
+            <button class="load-btn" onclick="loadPosition('rnb1kbnr/pppp1ppp/8/4p3/6Pq/5P2/PPPPP2P/RNBQKBNR w KQkq - 1 3', 'Fool\'s Mate loaded!')">Load Position</button>
+        </div>
+
+        <div class="ref-card">
+            <div class="ref-board" id="ref-back"></div>
+            <div class="ref-name">Back Rank Mate</div>
+            <div class="ref-desc">Rook delivers checkmate on the back rank</div>
+            <button class="load-btn" onclick="loadPosition('6k1/5ppp/8/8/8/8/8/R5K1 w - - 0 1', 'Back Rank Mate loaded!')">Load Position</button>
+        </div>
+
+    </div>
+
 </div>
 
-<div class="controls">
-    <button id="calcBtn" onclick="getBestMove()">⚡ Calculate Best Move</button>
-    <button id="flipBtn"  onclick="board.flip()">🔄 Flip Board</button>
-    <button id="resetBtn" onclick="resetBoard()">↩ Reset</button>
-</div>
-
-<div id="result">Make a move or click Calculate</div>
+<div id="result"></div>
+<div id="toast"></div>
 
 <script>
     const game = new Chess();
 
+    // Reference boards (small, non-interactive)
+    const refPositions = {
+        'ref-sicilian': 'rnbqkbnr/pp1ppppp/8/2p5/4P3/8/PPPP1PPP/RNBQKBNR w KQkq c6 0 2',
+        'ref-ruy':      'r1bqkbnr/pppp1ppp/2n5/1B2p3/4P3/5N2/PPPP1PPP/RNBQK2R b KQkq - 3 3',
+        'ref-french':   'rnbqkbnr/pppp1ppp/4p3/8/3PP3/8/PPP2PPP/RNBQKBNR b KQkq d3 0 2',
+        'ref-scholars': 'r1bqk2r/pppp1Qpp/2n2n2/2b1p3/2B1P3/8/PPPP1PPP/RNB1K1NR b KQkq - 0 4',
+        'ref-fool':     'rnb1kbnr/pppp1ppp/8/4p3/6Pq/5P2/PPPPP2P/RNBQKBNR w KQkq - 1 3',
+        'ref-back':     '6k1/5ppp/8/8/8/8/8/R5K1 w - - 0 1'
+    };
+
+    // Render all reference boards
+    Object.entries(refPositions).forEach(([id, fen]) => {
+        Chessboard(id, {
+            position: fen,
+            draggable: false,
+            pieceTheme: 'https://chessboardjs.com/img/chesspieces/wikipedia/{piece}.png'
+        });
+    });
+
+    // Main interactive board
     function onDrop(source, target) {
-        const move = game.move({ from: source, to: target, promotion: 'q' });
-        if (move === null) return 'snapback';
-        // Clear result when user moves
-        document.getElementById('result').className = '';
-        document.getElementById('result').innerHTML = 'Click Calculate Best Move';
+        try {
+            const move = game.move({ from: source, to: target, promotion: 'q' });
+            if (move === null || move === undefined) return 'snapback';
+            document.getElementById('result').className = '';
+            document.getElementById('result').innerHTML = '';
+
+            // Update eval bar on every move
+            fetch('/best_move', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ fen: game.fen() })
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (!data.error) updateEvalBar(data.score);
+            });
+
+        } catch(e) {
+            return 'snapback';
+        }
     }
 
     function onSnapEnd() {
         board.position(game.fen());
     }
-
     const board = Chessboard('board', {
-        draggable: true,
-        position: 'start',
-        onDrop: onDrop,
-        onSnapEnd: onSnapEnd,
-        pieceTheme: 'https://chessboardjs.com/img/chesspieces/wikipedia/{piece}.png'
-    });
+    draggable: true,
+    position: 'start',
+    onDrop: onDrop,
+    onSnapEnd: onSnapEnd,
+    pieceTheme: 'https://chessboardjs.com/img/chesspieces/wikipedia/{piece}.png',
+    showNotation: false
+});
+
+
+    // Load a reference position into the main board
+    function loadPosition(fen, message) {
+        game.load(fen);
+        board.position(fen);
+        document.getElementById('result').className = '';
+        document.getElementById('result').innerHTML = 'Click Calculate Best Move';
+        showToast(message);
+    }
+
+    function showToast(msg) {
+        const toast = document.getElementById('toast');
+        toast.textContent = msg;
+        toast.classList.add('show');
+        setTimeout(() => toast.classList.remove('show'), 2500);
+    }
+    function updateEvalBar(score) {
+        const raw = parseFloat(score);
+        if (isNaN(raw)) return;
+        const clamped = Math.max(-10, Math.min(10, raw));
+        const whitePct = ((clamped + 10) / 20) * 100;
+        const blackPct = 100 - whitePct;
+        document.getElementById('eval-bar-black').style.height = blackPct + '%';
+        document.getElementById('eval-bar-white').style.height = whitePct + '%';
+        document.getElementById('eval-label').textContent = score;
+    }
 
     function resetBoard() {
         game.reset();
         board.start();
         document.getElementById('result').className = '';
         document.getElementById('result').innerHTML = 'Make a move or click Calculate';
+    }
+    function undoMove() {
+        game.undo();
+        board.position(game.fen());
+        document.getElementById('result').innerHTML = 'Move undone — click Calculate';
     }
 
     function getBestMove() {
@@ -147,11 +501,11 @@
                 return;
             }
 
-            // Show the best move on the board
             const from = data.move.slice(0, 2);
             const to   = data.move.slice(2, 4);
             game.move({ from, to, promotion: 'q' });
             board.position(game.fen());
+            updateEvalBar(data.score); 
 
             resultDiv.innerHTML = `
                 <div>
@@ -164,7 +518,9 @@
             resultDiv.innerHTML = '⚠ Could not connect to server.';
         });
     }
+
 </script>
 
+</div>
 </body>
 </html>
